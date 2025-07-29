@@ -1,0 +1,136 @@
+SAMPLE CODE FOR AMBULANCE(SENDER):
+#include <WiFi.h>         // ESP32 WiFi
+#include <TinyGPS++.h>    // GPS parser library
+#include <HardwareSerial.h>
+
+#define MIC_PIN A0        // Analog pin to microphone output
+#define SIREN_THRESHOLD 500  // Threshold analog value for siren detection
+
+// WiFi Credentials (replace with your network)
+const char* ssid = "YOUR_SSID";
+const char* password = "YOUR_PASSWORD";
+
+// Server to send data - can be a local server or MQTT broker IP
+const char* serverIP = "192.168.1.100";  
+const uint16_t serverPort = 8080;
+
+HardwareSerial GPSserial(1);  // UART1
+TinyGPSPlus gps;
+
+WiFiClient client;
+
+void setup() {
+  Serial.begin(115200);
+  GPSserial.begin(9600, SERIAL_8N1, 16, 17); // RX=16, TX=17 ESP32 pins, configure as per wiring
+
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("Connected");
+}
+
+void loop() {
+  // Read microphone analog value
+  int micValue = analogRead(MIC_PIN);
+
+  // Simple siren detection threshold
+  if (micValue > SIREN_THRESHOLD) {
+    Serial.println("Siren detected!");
+
+    // Read GPS data
+    while (GPSserial.available() > 0) {
+      if (gps.encode(GPSserial.read())) {
+        if (gps.location.isValid()) {
+          float lat = gps.location.lat();
+          float lng = gps.location.lng();
+          Serial.printf("Lat: %f, Lng: %f\n", lat, lng);
+
+          // Connect to server and send siren alert + GPS
+          if (client.connect(serverIP, serverPort)) {
+            String message = String("ALERT: Ambulance detected at ") +
+                             "Lat=" + String(lat, 6) +
+                             ",Lng=" + String(lng, 6);
+            client.println(message);
+            client.stop();
+            Serial.println("Message sent.");
+          } else {
+            Serial.println("Connection to server failed");
+          }
+        }
+      }
+    }
+  }
+
+  delay(500); // Adjust sensitivity and responsiveness as needed
+}
+SAMPLE CODE FOR TRAFFIC SIGNAL (RECIEVER):
+#include <WiFi.h>         // ESP32 WiFi
+#include <TinyGPS++.h>    // GPS parser library
+#include <HardwareSerial.h>
+
+#define MIC_PIN A0        // Analog pin to microphone output
+#define SIREN_THRESHOLD 500  // Threshold analog value for siren detection
+
+// WiFi Credentials (replace with your network)
+const char* ssid = "YOUR_SSID";
+const char* password = "YOUR_PASSWORD";
+
+// Server to send data - can be a local server or MQTT broker IP
+const char* serverIP = "192.168.1.100";  
+const uint16_t serverPort = 8080;
+
+HardwareSerial GPSserial(1);  // UART1
+TinyGPSPlus gps;
+
+WiFiClient client;
+
+void setup() {
+  Serial.begin(115200);
+  GPSserial.begin(9600, SERIAL_8N1, 16, 17); // RX=16, TX=17 ESP32 pins, configure as per wiring
+
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("Connected");
+}
+
+void loop() {
+  // Read microphone analog value
+  int micValue = analogRead(MIC_PIN);
+
+  // Simple siren detection threshold
+  if (micValue > SIREN_THRESHOLD) {
+    Serial.println("Siren detected!");
+
+    // Read GPS data
+    while (GPSserial.available() > 0) {
+      if (gps.encode(GPSserial.read())) {
+        if (gps.location.isValid()) {
+          float lat = gps.location.lat();
+          float lng = gps.location.lng();
+          Serial.printf("Lat: %f, Lng: %f\n", lat, lng);
+
+          // Connect to server and send siren alert + GPS
+          if (client.connect(serverIP, serverPort)) {
+            String message = String("ALERT: Ambulance detected at ") +
+                             "Lat=" + String(lat, 6) +
+                             ",Lng=" + String(lng, 6);
+            client.println(message);
+            client.stop();
+            Serial.println("Message sent.");
+          } else {
+            Serial.println("Connection to server failed");
+          }
+        }
+      }
+    }
+  }
+
+  delay(500); // Adjust sensitivity and responsiveness as needed
+}
